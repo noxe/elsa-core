@@ -14,7 +14,7 @@
 </head>
 <body>
 
-<elsa-studio-root server-url="https://localhost:11000" monaco-lib-path="build/assets/js/monaco-editor/min" culture="en-US">
+<elsa-studio-root server-url="https://localhost:11000" monaco-lib-path="build/assets/js/monaco-editor/min" culture="en-US" config="build/assets/designer.config.json">
   <!-- The root dashboard component -->
   <elsa-studio-dashboard></elsa-studio-dashboard>
 
@@ -70,12 +70,10 @@
       // Register a sample middleware.
       e.service.register({
         onRequest(request) {
-          console.log('onRequest');
           return request;
         },
 
         onResponse(response) {
-          console.log('onResponse');
           return response;
         }
       });

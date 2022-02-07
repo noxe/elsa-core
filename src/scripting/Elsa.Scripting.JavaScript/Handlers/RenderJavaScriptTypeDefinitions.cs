@@ -31,12 +31,14 @@ namespace Elsa.Scripting.JavaScript.Handlers
             output.AppendLine("declare function parseGuid(text: string): Guid");
             output.AppendLine("declare function setVariable(name: string, value?: any): void;");
             output.AppendLine("declare function getVariable(name: string): any;");
+            output.AppendLine("declare function getTransientVariable(name: string): any;");
             output.AppendLine("declare function getConfig(section: string): any;");
             output.AppendLine("declare function isNullOrWhiteSpace(text: string): boolean;");
             output.AppendLine("declare function isNullOrEmpty(text: string): boolean;");
             output.AppendLine("declare function getWorkflowDefinitionIdByName(name: string): string;");
             output.AppendLine("declare function getWorkflowDefinitionIdByTag(tag: string): string;");
             output.AppendLine("declare function getActivity(idOrName: string): any;");
+            output.AppendLine("declare function getActivityId(name: string): string;");
             output.AppendLine("declare function getActivityProperty(activityIdOrName: string, propertyName: string): any;");
 
             output.AppendLine("declare const activityExecutionContext: ActivityExecutionContext;");

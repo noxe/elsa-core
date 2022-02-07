@@ -9,9 +9,8 @@ import {
   EventTypes,
   getVersionOptionsString, IntellisenseContext, ListModel,
   OrderBy,
-  PagedList, SelectList,
-  SelectListItem,
-  Variables,
+  PagedList,
+  SelectList,
   VersionOptions,
   WorkflowBlueprint,
   WorkflowBlueprintSummary,
@@ -21,7 +20,7 @@ import {
   WorkflowExecutionLogRecord,
   WorkflowInstance,
   WorkflowInstanceSummary,
-  WorkflowPersistenceBehavior,
+  WorkflowPersistenceBehavior, WorkflowProviderDescriptor,
   WorkflowStatus,
   WorkflowStorageDescriptor
 } from "../models";
@@ -63,8 +62,20 @@ export const createElsaClient = async function (serverUrl: string): Promise<Elsa
     },
     workflowDefinitionsApi: {
       list: async (page?: number, pageSize?: number, versionOptions?: VersionOptions) => {
-        const versionOptionsString = getVersionOptionsString(versionOptions);
-        const response = await httpClient.get<PagedList<WorkflowDefinitionSummary>>(`v1/workflow-definitions?version=${versionOptionsString}`);
+        const queryString = {
+          version: getVersionOptionsString(versionOptions)
+        };
+
+        if (!!page || page === 0)
+          queryString['page'] = page;
+
+        if (!!pageSize)
+          queryString['pageSize'] = pageSize;
+
+        const queryStringItems = collection.map(queryString, (v, k) => `${k}=${v}`);
+        const queryStringText = queryStringItems.length > 0 ? `?${queryStringItems.join('&')}` : '';
+        const response = await httpClient.get<PagedList<WorkflowDefinitionSummary>>(`v1/workflow-definitions${queryStringText}`);
+
         return response.data;
       },
       getMany: async (ids: Array<string>, versionOptions?: VersionOptions) => {
@@ -124,12 +135,45 @@ export const createElsaClient = async function (serverUrl: string): Promise<Elsa
       },
       restartFromActivity: async (request) => {
         await httpClient.post<void>(`v1/workflow-test/restartFromActivity`, request);
+      },
+      stop: async (request) => {
+        await httpClient.post<void>(`v1/workflow-test/stop`, request);
       }
     },
     workflowRegistryApi: {
-      list: async (page?: number, pageSize?: number, versionOptions?: VersionOptions): Promise<PagedList<WorkflowBlueprintSummary>> => {
-        const versionOptionsString = getVersionOptionsString(versionOptions);
-        const response = await httpClient.get<PagedList<WorkflowBlueprintSummary>>(`v1/workflow-registry?version=${versionOptionsString}`);
+      list: async (providerName: string, page?: number, pageSize?: number, versionOptions?: VersionOptions): Promise<PagedList<WorkflowBlueprintSummary>> => {
+        const queryString = {
+          version: getVersionOptionsString(versionOptions)
+        };
+
+        if (!!page || page === 0)
+          queryString['page'] = page;
+
+        if (!!pageSize)
+          queryString['pageSize'] = pageSize;
+
+        const queryStringItems = collection.map(queryString, (v, k) => `${k}=${v}`);
+        const queryStringText = queryStringItems.length > 0 ? `?${queryStringItems.join('&')}` : '';
+        const response = await httpClient.get<PagedList<WorkflowBlueprintSummary>>(`v1/workflow-registry/${providerName}${queryStringText}`);
+        return response.data;
+      },
+      listAll: async (versionOptions?: VersionOptions): Promise<Array<WorkflowBlueprintSummary>> => {
+        const queryString = {
+          version: getVersionOptionsString(versionOptions)
+        };
+
+        const queryStringItems = collection.map(queryString, (v, k) => `${k}=${v}`);
+        const queryStringText = queryStringItems.length > 0 ? `?${queryStringItems.join('&')}` : '';
+        const response = await httpClient.get<Array<WorkflowBlueprintSummary>>(`v1/workflow-registry${queryStringText}`);
+        return response.data;
+      },
+      findManyByDefinitionVersionIds: async (definitionVersionIds: Array<string>): Promise<Array<WorkflowBlueprintSummary>> => {
+
+        if (definitionVersionIds.length == 0)
+          return [];
+
+        const idsQuery = definitionVersionIds.join(",")
+        const response = await httpClient.get<Array<WorkflowBlueprintSummary>>(`v1/workflow-registry/by-definition-version-ids?ids=${idsQuery}`);
         return response.data;
       },
 
@@ -235,10 +279,22 @@ export const createElsaClient = async function (serverUrl: string): Promise<Elsa
         return response.data;
       }
     },
+    workflowProvidersApi: {
+      list: async () => {
+        const response = await httpClient.get<Array<WorkflowProviderDescriptor>>('v1/workflow-providers');
+        return response.data;
+      }
+    },
     workflowChannelsApi: {
       list: async () => {
         const response = await httpClient.get<Array<string>>('v1/workflow-channels');
         return response.data;
+      }
+    },
+    featuresApi: {
+      list: async () => {
+        const response = await httpClient.get<FeaturesModel>('v1/features');
+        return response.data.features;
       }
     },
   }
@@ -256,12 +312,18 @@ export interface ElsaClient {
   designerApi: DesignerApi;
   activityStatsApi: ActivityStatsApi;
   workflowStorageProvidersApi: WorkflowStorageProvidersApi;
+  workflowProvidersApi: WorkflowProvidersApi;
   workflowChannelsApi: WorkflowChannelsApi;
   workflowTestApi: WorkflowTestApi;
+  featuresApi: FeaturesApi;
 }
 
 export interface ActivitiesApi {
   list(): Promise<Array<ActivityDescriptor>>;
+}
+
+export interface FeaturesApi {
+  list(): Promise<Array<string>>;
 }
 
 export interface WorkflowDefinitionsApi {
@@ -288,11 +350,18 @@ export interface WorkflowDefinitionsApi {
 export interface WorkflowTestApi {
 
   execute(request: WorkflowTestExecuteRequest): Promise<void>;
+
   restartFromActivity(request: WorkflowTestRestartFromActivityRequest): Promise<void>;
+
+  stop(request: WorkflowTestStopRequest): Promise<void>;
 }
 
 export interface WorkflowRegistryApi {
-  list(page?: number, pageSize?: number, versionOptions?: VersionOptions): Promise<PagedList<WorkflowBlueprintSummary>>;
+  list(providerName: string, page?: number, pageSize?: number, versionOptions?: VersionOptions): Promise<PagedList<WorkflowBlueprintSummary>>;
+
+  listAll(versionOptions?: VersionOptions): Promise<Array<WorkflowBlueprintSummary>>;
+
+  findManyByDefinitionVersionIds(definitionVersionIds: Array<string>): Promise<Array<WorkflowBlueprintSummary>>;
 
   get(id: string, versionOptions: VersionOptions): Promise<WorkflowBlueprint>;
 }
@@ -353,6 +422,10 @@ export interface WorkflowStorageProvidersApi {
   list(): Promise<Array<WorkflowStorageDescriptor>>;
 }
 
+export interface WorkflowProvidersApi {
+  list(): Promise<Array<WorkflowProviderDescriptor>>;
+}
+
 export interface WorkflowChannelsApi {
   list(): Promise<Array<string>>;
 }
@@ -364,7 +437,7 @@ export interface SaveWorkflowDefinitionRequest {
   description?: string;
   tag?: string;
   channel?: string;
-  variables?: Variables;
+  variables?: string;
   contextOptions?: WorkflowContextOptions;
   isSingleton?: boolean;
   persistenceBehavior?: WorkflowPersistenceBehavior;
@@ -388,6 +461,10 @@ export interface WorkflowTestRestartFromActivityRequest {
   signalRConnectionId: string
 }
 
+export interface WorkflowTestStopRequest {
+  workflowInstanceId: string
+}
+
 export interface ExportWorkflowResponse {
   fileName: string;
   data: Blob;
@@ -409,4 +486,8 @@ interface ActivityEventCount {
 
 interface ActivityFault {
   message: string;
+}
+
+interface FeaturesModel {
+  features: Array<string>;
 }
