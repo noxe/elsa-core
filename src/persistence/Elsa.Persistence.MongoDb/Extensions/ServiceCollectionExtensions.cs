@@ -44,15 +44,15 @@ namespace Elsa.Persistence.MongoDb
                 .AddSingleton(sp => sp.GetRequiredService<TDbContext>().WorkflowInstances)
                 .AddSingleton(sp => sp.GetRequiredService<TDbContext>().WorkflowExecutionLog)
                 .AddSingleton(sp => sp.GetRequiredService<TDbContext>().Bookmarks)
-                .AddSingleton(sp => sp.GetRequiredService<TDbContext>().Triggers);
+                .AddSingleton(sp => sp.GetRequiredService<TDbContext>().Triggers)
                 .AddStartupTask<DatabaseInitializer>();
 
             elsa
                 .UseWorkflowDefinitionStore(sp => sp.GetRequiredService<MongoDbWorkflowDefinitionStore>())
                 .UseWorkflowInstanceStore(sp => sp.GetRequiredService<MongoDbWorkflowInstanceStore>())
                 .UseWorkflowExecutionLogStore(sp => sp.GetRequiredService<MongoDbWorkflowExecutionLogStore>())
-                .UseWorkflowTriggerStore(sp => sp.GetRequiredService<MongoDbBookmarkStore>())
-                .UseWorkflowBookmarkTriggerStore(sp => sp.GetRequiredService<MongoDbTriggerStore>());
+                .UseBookmarkStore(sp => sp.GetRequiredService<MongoDbBookmarkStore>())
+                .UseTriggerStore(sp => sp.GetRequiredService<MongoDbTriggerStore>());
 
             DatabaseRegister.RegisterMapsAndSerializers();
         }
