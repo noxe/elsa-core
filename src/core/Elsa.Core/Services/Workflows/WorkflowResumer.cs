@@ -37,7 +37,7 @@ namespace Elsa.Services.Workflows
             string? contextId = default,
             CancellationToken cancellationToken = default)
         {
-            var results = await _bookmarkFinder.FindBookmarksAsync(activityType, bookmark, correlationId, tenantId, cancellationToken).ToList();
+            var results = await _bookmarkFinder.FindBookmarksAsync(activityType, bookmark, correlationId, tenantId, cancellationToken: cancellationToken).ToList();
             await ResumeWorkflowsAsync(results, input, cancellationToken);
         }
 
@@ -77,7 +77,7 @@ namespace Elsa.Services.Workflows
 
             if (workflowBlueprint.IsDisabled)
             {
-                return new RunWorkflowResult(workflowInstance, activityId, false);
+                return new RunWorkflowResult(workflowInstance, activityId, null, false);
             }
 
             return await _workflowRunner.RunWorkflowAsync(workflowBlueprint, workflowInstance, activityId, input, cancellationToken);
